@@ -1,0 +1,269 @@
+<HTML>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<HEAD>
+	<Script Src="js/Head.js"></Script>
+
+	<Script> // Einstellungen
+	
+		// Spracherkennung
+		var UseSpeechRecog    		= true;  	// Spracheingabe
+		var UseSpeechRecogLog  		= true;  	// Spracheingabe Notify
+		var UseSpeechTranslation 	= true;  	// Uebersetzung Notify
+		
+		// Sprachausgabe
+		var UseSpeakOutput    		= true;  	// Sprachausgabe
+		var UseSpeakLogging			= true;  	// Sprachausgabe + Notify
+		
+		// ThreeJS Orientation
+		var UseCompass 				= true;   	// Kompass 
+		var UseCompassGeoLocation	= true;   	// Boden = Geolocation
+		var UseCompassWeather		= true;   	// Decke = Wetter
+		
+		// Informativ (statisch)
+		var UseBatteryStats			= true;  	// Anzeige Batterie
+		var UseDateTime				= true;	 	// Datum Uhrzeit
+		
+		// ArucoJS Marker QR erkennen
+		var UseMarkerDetection		= true;  	// Marker erkennen
+		var UseMarkerDebug			= false;  	// Marker Debug
+		
+		// Tracking.JS Funtionen
+		var UseTrackingJSFace		= false;  	// Lahme Gesichtserkennung
+		var UseTrackingJSColor		= false;  	// Schnelle Farberkennung
+		var UseTrackingJSSurf		= false;  	// Surf Features einblenden
+		
+		// HeadTrackrJS Funktionen
+		var UseHeadTrackrJS			= false;	 // Kopf Bewegungen
+		var UseHeadTrackrJSDebug	= false;	 // Kopf Bewegungen Debug
+		
+		// CLMTrackrJS Funktionen
+		var UseCLMTrackJS			= false;  	// Emotionen, Gesichtszuege
+		var UseCLMTrackJSDebug		= false;  	// Emotionen, Gesichtszuege Debug
+		
+		// VideoTrackerJS Funktionen
+		var UseVideoTrackerJS		= true;		// Keinen Plan was das Ding macht ??
+		var UseVideoTrackerJSDebug	= true;		// Keinen Plan was das Ding macht ?? Debug
+		
+		// ObjectDetectJS Funktionen
+		var UseObjectDetectJSFaces	= true;		// Erkennt Gesichter schnell
+		var UseObjectDetectJSHand	= true;		// Erkennt Hand auf und Faust
+		var UseObjectDetectJSHandCT	= true;		// Kontrolle mittels Handbewegungen
+		
+		// LeapMotionJS Funktionen
+		var UseLeapMotionFaces		= true		// Erkennt Gesichter
+		var UseLeapMotionDebug		= true 		// Gesichtserkennung Debug
+		
+		// BabylonJS Funktionen
+		var UseBabylonJoystick		= true 		// Klicken mit Kopfbewegungen
+		
+	</Script>
+	<Script> // Initialisierung
+		head.load(
+			// Main Module
+			"css/main.css",
+			"css/bootstrap.css",
+			"js/jquery.js",
+			"js/uikit.min.js",
+			"js/notify.js",
+			"css/notify.css",
+			"js/OrientationCursor.js",
+			function () {
+				UIkit.notify({message: "Initialisierung beendet", timeout: 2000});
+			}
+		);
+	</Script>
+
+</HEAD>
+<BODY>
+	<select id="audioSource"></select>
+	<select id="videoSource"></select>
+	
+	<div class="container-fluid">
+	  <div class="row">
+	  </div>
+		<div class="row">
+			<div id="VL" class="col-xs-6" style="background-color:lightgrey;padding:0">
+				<video Width="100%" muted autoplay id="V1"></Video>
+				<canvas id="canvas3"></canvas>
+				<canvas id="canvas4"></canvas>
+			</div>
+			<div id="VR" class="col-xs-6" style="background-color:lightgreen;padding:0">
+				<video Width="100%" muted autoplay id="V2"></Video>
+				<canvas id="canvas1"></canvas>
+				<canvas id="canvas2"></canvas>
+				<div id="Battery"></div>
+				<div id="DateTime"></div>
+			</div>
+		</div>
+
+		<img 	id="img1"></img>
+		<p 	id="bat1"></p>
+		<p 	id="rec1"></p>
+		<p 	id="data3"></p>
+		<p 	id="data4"></p>
+		<p 	id="data5"></p>
+		<p 	id="data6"></p>
+		<p 	id="data7"></p>
+		<p 	id="data8"></p>
+		<p 	id="data9"></p>
+	</div>
+
+
+	<script>
+
+		var UseSpeakRecog = true;
+		
+		var UseDebugMode  = true;
+		var UseColorRecog = false;
+		var UseSurfDetect = false;
+		var UseFaceRecog  = true;
+		
+		var UseOrientat   = false;
+		var UseGeoLoc	  = false;
+		var UseBatteryLog = false;
+		
+		var lastQRCode = "0";
+		var lastQRBin  = "0";
+		
+		var videoElement = document.getElementById('V1');
+		var videoElement2 = document.getElementById('V2');
+		var audioSelect = document.querySelector('select#audioSource');
+		var videoSelect = document.querySelector('select#videoSource');
+		var videoSelect2 = document.querySelector('select#videoSource');
+
+
+		navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+		function gotSources(sourceInfos) {
+		  for (var i = 0; i !== sourceInfos.length; ++i) {
+			var sourceInfo = sourceInfos[i];
+			var option = document.createElement('option');
+			option.value = sourceInfo.id;
+			if (sourceInfo.kind === 'audio') {
+			  option.text = sourceInfo.label || 'microphone ' + (audioSelect.length + 1);
+			  audioSelect.appendChild(option);
+			} else if (sourceInfo.kind === 'video') {
+			  option.text = sourceInfo.label || 'camera ' + (videoSelect.length + 1);
+			  videoSelect.appendChild(option);
+			  if (option.text.indexOf("back") !=-1) {
+				videoSelect.selectedIndex = videoSelect.length - 1;
+				start ();
+			  }
+			} else {
+			  console.log('Some other kind of source: ', sourceInfo);
+			}
+		  }
+		}
+
+		if (typeof MediaStreamTrack === 'undefined'){
+		  alert('This browser does not support MediaStreamTrack.\n\nTry Chrome Canary.');
+		} else {
+		  MediaStreamTrack.getSources(gotSources);
+		}
+
+
+		function successCallback(stream) {
+		  window.stream = stream; // make stream available to console
+		  videoElement.src = window.URL.createObjectURL(stream);
+		  videoElement.play();
+		  videoElement2.src = window.URL.createObjectURL(stream);
+		  videoElement2.play();
+				head.load (
+					// ThreeJS 
+					//"js/three.min.js",
+					//"js/DeviceOrientationControls.js",
+					//"js/CSS3DRenderer.js",
+					//"Modules/AROrient3D.js",
+					
+					// Statische
+					"Modules/ARBattery.js",
+					"Modules/ARDateTime.js",
+					
+					// Spracherkennung
+					"Modules/WKTranslate.js",
+					//"Modules/ARRecog.js",
+					"Modules/ARSpeech.js",
+					
+					// Marker
+					//"js/aruco.js",
+					//"js/cv.js",
+					//"Modules/ARMarker.js",
+
+					// Tracking.js (lahm)
+					//"js/Tracking-min.js",
+					//"js/face-min.js",
+					//"Modules/WKFacedetect.js",
+					//"Modules/WKColors.js",
+					//"Modules/ARSurfFeature.js",
+					
+					// ObjectDetect (schnell)
+					"js/compatibility.js",
+					"js/smoother.js",
+					"js/objectdetect.js",
+					"js/classifier/objectdetect.handfist.js",
+					"js/classifier/objectdetect.handopen.js",
+					"modules/ARObjdetect.js",
+					
+					// HeadTrackr (schnell) 
+					//"Js/Headtrackr.js",
+					//"Modules/ARHeadTrackr.js",
+					
+					// clmTrackr und JSFeet
+					//"js/utils.js",
+					//"js/jsfeat-min.js",
+					//"js/frontalface.js",
+					//"js/jsfeat_detect.js",
+					//"js/numeric-1.2.6.min.js",
+					//"js/mosse.js",
+					//"js/left_eye_filter.js",
+					//"js/right_eye_filter.js",
+					//"js/nose_filter.js",
+					//"js/model_pca_20_svm.js",
+					//"js/clm.js",
+					//"js/svmfilter_webgl.js",
+					//"js/svmfilter_fft.js",
+					//"js/mossefilter.js",
+					//"modules/WKCLM.js",
+					
+
+					function (){
+						UIkit.notify({message: "Alle Submodule geladen", timeout: 2000});
+						
+ 					}
+				);
+		}
+
+		function errorCallback(error){
+		  console.log('navigator.getUserMedia error: ', error);
+		}
+
+		function start(){
+		  if (!!window.stream) {
+			videoElement.src = null;
+			window.stream.stop();
+		  }
+		  var audioSource = audioSelect.value;
+		  var videoSource = videoSelect.value;
+		  var constraints = {
+			audio: false,
+			video: {
+			  optional: [{sourceId: videoSource}],
+			  mandatory: {
+			  maxWidth: 320,
+			  maxHeight: 240,
+			  maxFrameRate: 10
+			}
+			}
+		  };
+		  navigator.getUserMedia(constraints, successCallback, errorCallback);
+		}
+
+		audioSelect.onchange = start;
+		videoSelect.onchange = start;
+
+		start();
+
+	</script>
+
+</BODY>
+</HTML>
